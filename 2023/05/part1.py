@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
 
-# !!!!IMPORTANT!!!! For this to work, you've gotta append an extra newline at the end of your input
-# I have no clue why
-
-
 class Map:
     dest_start = 0
     source_start = 0
@@ -60,6 +56,10 @@ if __name__ == '__main__':
         else:
             current_section.add_map(Map(line))
 
+    for i in range(len(seeds)):
+        seeds[i] = current_section.apply(int(seeds[i]))
+    print(f"Seeds: [{' '.join([str(seed) for seed in seeds])}]")
+    
     lowest = 1_000_000_000_000
 
     for seed in seeds:
