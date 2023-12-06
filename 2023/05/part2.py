@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from typing import List
+
 
 class NumberRange:
     start = 0
@@ -8,55 +10,68 @@ class NumberRange:
         self.start = start
         self.end = end
 
+    def __repr__(self):
+        return f"NumberRange({self.start}, {self.end})"
+
     def __str__(self):
         return f"{self.start}-{self.end}"
-    
-    def is_valid(self) -> bool:
-        return self.start<=self.end
-    
-    def union(self, nr) -> list:
-        if   (nr.start <= self.start and self.end <= nr.end): #nr contains self
-            return [ nr ]
-        elif (self.start <= nr.start and self.end <= nr.end): 
-            return [ NumberRange(self.start, nr.end) ]
-        elif (nr.start <= self.start and nr.end <= self.end):
-            return [ NumberRange(nr.start, self.end) ]
-        elif (self.start <= nr.start and nr.end <= self.end):
-            return [ self ]
-        else: # No overlap
-            return [ self, nr ]
-    
-    # TODO: DEAL WITH CASES WHERE |-| |_|
-    def intersect(self, nr) -> list:
-        if   (nr.start <= self.start and self.end <= nr.end): #nr contains self
-            return [ self ]
-        elif (self.start <= nr.start and self.end <= nr.end): 
-            return [ NumberRange(nr.start, self.end) ]
-        elif (nr.start <= self.start and nr.end <= self.end):
-            return [ NumberRange(self.start, nr.end) ]
-        elif (self.start <= nr.start and nr.end <= self.end):
-            return [ nr ]
-        else: # No overlap
-            return [ ]
 
-    def not_then_intersect(self, nr) -> list: # equivalent of (!self) & nr
-        if   (nr.start <= self.start and self.end <= nr.end): #nr contains self
-            return [ NumberRange(nr.start, self.start-1), NumberRange(self.end+1, nr.end) ]
-        elif (self.start <= nr.start and self.end <= nr.end): 
-            return [ NumberRange(self.end+1, nr.end) ]
+    def is_valid(self) -> bool:
+        return self.start <= self.end
+
+    def union(self, nr) -> list:
+        return list(filter(lambda n: n.is_valid(), self.unchecked_union(nr)))
+
+    def unchecked_union(self, nr) -> list:
+        if   (nr.start <= self.start and self.end <= nr.end):  # nr contains self
+            return [nr]
+        elif (self.start <= nr.start and self.end <= nr.end):
+            return [NumberRange(self.start, nr.end)]
         elif (nr.start <= self.start and nr.end <= self.end):
-            return [ NumberRange(nr.start, self.start-1) ]
+            return [NumberRange(nr.start, self.end)]
         elif (self.start <= nr.start and nr.end <= self.end):
-            return [ ]
-        else: # No overlap
-            return [ nr ]
+            return [self]
+        else:  # No overlap
+            return [self, nr]
+
+    def intersect(self, nr) -> list:
+        return list(filter(lambda n: n.is_valid(), self.unchecked_intersect(nr)))
+
+    def unchecked_intersect(self, nr) -> list:
+        if   (nr.start <= self.start and self.end <= nr.end):  # nr contains self
+            return [self]
+        elif (self.start <= nr.start and self.end <= nr.end):
+            return [NumberRange(nr.start, self.end)]
+        elif (nr.start <= self.start and nr.end <= self.end):
+            return [NumberRange(self.start, nr.end)]
+        elif (self.start <= nr.start and nr.end <= self.end):
+            return [nr]
+        else:  # No overlap
+            return []
+
+    def not_then_intersect(self, nr) -> list:
+        return list(filter(lambda n: n.is_valid(), self.unchecked_not_then_intersect(nr)))
+
+    def unchecked_not_then_intersect(self, nr) -> list:  # equivalent of (!self) & nr
+        if   (nr.end<self.start or nr.start>self.end): #No overlap
+            return [nr]
+        elif (nr.start <= self.start and self.end <= nr.end):  # nr contains self
+            return [NumberRange(nr.start, self.start - 1), NumberRange(self.end + 1, nr.end)]
+        elif (self.start <= nr.start and self.end <= nr.end):
+            return [NumberRange(self.end + 1, nr.end)]
+        elif (nr.start <= self.start and nr.end <= self.end):
+            return [NumberRange(nr.start, self.start - 1)]
+        elif (self.start <= nr.start and nr.end <= self.end):
+            return []
+        else:  # No overlap
+            raise Exception("This shouldn't be reached")
 
 
 class Map:
     dest_start = 0
     source_start = 0
     range_length = 0
-    
+
     def __init__(self, d: int, s: int, r: int):
         self.dest_start = d
         self.source_start = s
@@ -65,34 +80,37 @@ class Map:
     @classmethod
     def parse(Self, inp: str):
         self = Self(
-                int(inp.split(' ')[0]),
-                int(inp.split(' ')[1]),
-                int(inp.split(' ')[2]))
+            int(inp.split(' ')[0]),
+            int(inp.split(' ')[1]),
+            int(inp.split(' ')[2]))
 
         return self
+
+    def __repr__(self):
+        return f"Map({self.dest_start}, {self.source_start}, {self.range_length})"
 
     def __str__(self):
         return f"{self.dest_start} {self.source_start} {self.range_length}"
 
     def dest_last(self) -> int:
-        return self.dest_start+self.range_length-1
+        return self.dest_start + self.range_length - 1
 
     def source_last(self) -> int:
         return self.source_start + self.range_length - 1
 
     def reverse_apply(self, nums: NumberRange) -> NumberRange:
         source = NumberRange(0, 0)
-        if nums.start<self.dest_start:
+        if nums.start < self.dest_start:
             source.start = self.dest_start
         else:
             source.start = nums.start
 
-        if nums.end>self.dest_last():
+        if nums.end > self.dest_last():
             source.end = self.dest_last()
         else:
             source.end = nums.end
 
-        distance = self.dest_start-self.source_start
+        distance = self.dest_start - self.source_start
 
         source.start -= distance
         source.end -= distance
@@ -103,7 +121,7 @@ class Map:
 
         return (self.translate(accept), rejects)
 
-    def apply_no_translate(self, source: NumberRange) -> tuple: #(NumberRange accepted, NumberRange[] rejected)
+    def apply_no_translate(self, source: NumberRange) -> tuple:  # (NumberRange accepted, NumberRange[] rejected)
         '''dest = NumberRange(0, 0)
         rejects = []
         if source.start < self.source_start:
@@ -118,29 +136,30 @@ class Map:
         else:
             dest.end = source.end;'''
         me_as_number_range = NumberRange(self.source_start, self.source_last())
-        
+
         accept = ''
         accepts = me_as_number_range.intersect(source)
         if len(accepts) == 0:
             accept = NumberRange(0, -1)
         else:
             accept = accepts[0]
-            
-        return (accept, 
-                src_as_number_range.not_then_intersect(source))
+
+        return (accept,
+                me_as_number_range.not_then_intersect(source))
 
     def translate(self, source: NumberRange) -> NumberRange:
         dest = source
-        
-        distance = self.dest_start-self.source_start
+
+        distance = self.dest_start - self.source_start
 
         dest.start += distance
         dest.end += distance
-        
+
         return dest
 
     def possible_outputs(self) -> NumberRange:
-        return NumberRange(self.dest_start, self.dest_start+self.range_length-1)
+        return NumberRange(self.dest_start, self.dest_start + self.range_length - 1)
+
 
 class Section:
     name = ""
@@ -150,10 +169,13 @@ class Section:
         self.name = name.strip()
         self.maps = []
 
+    def __repr__(self):
+        return f"Section(\"{self.name}\")"
+
     def add_map(self, m: Map):
         self.maps.append(m)
 
-    def reverse_apply(self, nums: NumberRange) -> list: #returns a list of valid numberranges
+    def reverse_apply(self, nums: NumberRange) -> list:  # returns a list of valid numberranges
         output_nums = []
         for m in self.maps:
             output = m.reverse_apply(nums)
@@ -162,7 +184,7 @@ class Section:
 
         return output_nums
 
-    def apply(self, source: NumberRange) -> tuple: #(accepts, rejects)
+    def apply(self, source: NumberRange) -> tuple:  # (accepts, rejects)
         accepts = []
         rejects = []
         for m in self.maps:
@@ -172,8 +194,8 @@ class Section:
             rejects += m_rejects
 
         return (accepts, rejects)
-    
-    def apply_no_translate(self, source: NumberRange) -> tuple: #(accepts, rejects)
+
+    def apply_no_translate(self, source: NumberRange) -> tuple:  # (accepts, rejects)
         accepts = []
         rejects = []
         for m in self.maps:
@@ -184,33 +206,30 @@ class Section:
 
         return (accepts, rejects)
 
-            
 
-
-def parse(file) -> tuple: #returns (seeds, list of sections)
+def parse(file) -> tuple:  # returns (seeds, list of sections)
     seeds = []
     sections = []
     for line in file:
         if line.startswith("seeds: "):
             seeds_string_exploded = [int(s) for s in line.split(': ')[1].split(' ')]
             for i in range(0, len(seeds_string_exploded), 2):
-                seeds.append(NumberRange(seeds_string_exploded[i], seeds_string_exploded[i]+seeds_string_exploded[i+1]-1))
+                seeds.append(
+                    NumberRange(seeds_string_exploded[i], seeds_string_exploded[i] + seeds_string_exploded[i + 1] - 1))
 
         elif line.endswith("map:\n"):
             sections.append(Section(line.split(' ')[0]))
-        elif line=='\n':
+        elif line == '\n':
             ...
         else:
             sections[-1].add_map(Map.parse(line))
 
     return (seeds, sections)
 
-def nr_list_str(nr):
-    return ' '.join([str(n) for n in nr]);
 
 if __name__ == '__main__':
     from sys import stdin
-    
+
     (seeds, sections) = parse(stdin)
     print("Parsed seed and sections")
 
@@ -234,10 +253,10 @@ if __name__ == '__main__':
         all_rejects = []
         for number_range in source:
             (accepts, rejects) = section.apply_no_translate(number_range)
-            print(f"\tApplied map from {number_range} to get accepts {nr_list_str(accepts)} and rejects {nr_list_str(rejects)}")
+            print(f"\tApplied map from {number_range} to get accepts {accepts} and rejects {rejects}")
             all_accepts += accepts
             all_rejects += rejects
-        
+
         dest = []
 
         all_rejects_that_dont_intersect_with_any_accepts = []
@@ -248,21 +267,21 @@ if __name__ == '__main__':
         for reject in all_rejects_that_dont_intersect_with_any_accepts:
             if reject.is_valid():
                 dest.append(reject)
-        
+
         all_transposed_accepts = []
 
         for accept in all_accepts:
             all_transposed_accepts.append(section.apply(accept)[0][0]) #All foreign characters should've been stripped, so it just needs to be transposed
 
         dest += all_transposed_accepts
-        
-        print(f"\tDest: {nr_list_str(dest)}")
-        
+
+        print(f"\tDest: {dest}")
+
         source = dest
-    
+
     minimum = 1_000_000_000_000
     for nr in source:
-        if nr.start<minimum:
+        if nr.start < minimum:
             minimum = nr.start
 
     print(f"Minimum is {minimum}")
