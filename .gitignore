@@ -4,3 +4,9 @@ test-input
 
 # Binary outputs
 a.out 
+
+# Python stuff
+__pycache__/
+
+# IDE stuff
+.idea/
