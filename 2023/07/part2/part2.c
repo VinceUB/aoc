@@ -58,7 +58,7 @@ int main(int argc, char** argv){
 		}
 
 		handv[handc].bid = strtol(&(line[HAND_SIZE]), NULL, 10);
-		printf(" %3d. Type: %s\n", handv[handc].bid, type_name(type(handv[handc])));
+		printf(" %3d. Type: %s\n", handv[handc].bid, type_name(type(handv[handc])), handv[handc].consumed_jokers);
 		handc++;
 	}
 

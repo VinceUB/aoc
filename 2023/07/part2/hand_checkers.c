@@ -1,11 +1,11 @@
 #include "hand.h"
 
-bool is_five_of_a_kind(Hand*);
-bool is_four_of_a_kind(Hand*);
-bool is_full_house(Hand*);
-bool is_three_of_a_kind(Hand*);
-bool is_two_pair(Hand*);
-bool is_one_pair(Hand*);
+bool is_five_of_a_kind_raw(Hand*);
+bool is_four_of_a_kind_raw(Hand*);
+bool is_full_house_raw(Hand*);
+bool is_three_of_a_kind_raw(Hand*);
+bool is_two_pair_raw(Hand*);
+bool is_one_pair_raw(Hand*);
 
 int count_jokers(Hand h);
 
@@ -43,60 +43,81 @@ char* hand_to_str(Hand h){
 }
 
 bool is_five_of_a_kind(Hand *h){
-	return (h->c[0] == h->c[1] &&
+	return ((h->c[0] == h->c[1] &&
 	       h->c[0] == h->c[2] &&
 	       h->c[0] == h->c[3] &&
 	       h->c[0] == h->c[4]) ||
-			(is_four_of_a_kind(h) && count_jokers(*h)==1) ||
-			(is_three_of_a_kind(h) && count_jokers(*h)==2) ||
-			(is_one_pair(h) && count_jokers(*h)==3) ||
-			(count_jokers(*h)==4);
+			(is_four_of_a_kind_raw(h) && count_jokers(*h)==1) ||
+			(is_three_of_a_kind_raw(h) && count_jokers(*h)==2) ||
+			(is_one_pair_raw(h) && count_jokers(*h)==3) ||
+			(count_jokers(*h)==4));
+}
+
+bool is_four_of_a_kind_raw(Hand* h){
+	qsort(h->c, HAND_SIZE, sizeof(h->c[0]), &card_compare);
+
+	return ((h->c[0] == h->c[1] && h->c[0] == h->c[2] && h->c[0] == h->c[3]) ||
+	       (h->c[1] == h->c[2] && h->c[1] == h->c[3] && h->c[1] == h->c[4]));
 }
 
 bool is_four_of_a_kind(Hand* h){
+	return is_four_of_a_kind_raw(h) ||	       
+		(is_three_of_a_kind_raw(h) && count_jokers(*h)==1) || //AAAJX
+	       (is_two_pair_raw(h) && count_jokers(*h)==2) || //AAJJX, jokers count as one of the pairs
+		   (count_jokers(*h)==3); //AJJJX
+}
+
+bool is_full_house_raw(Hand* h){
 	qsort(h->c, HAND_SIZE, sizeof(h->c[0]), &card_compare);
 
-	return (h->c[0] == h->c[1] && h->c[0] == h->c[2] && h->c[0] == h->c[3]) ||
-	       (h->c[1] == h->c[2] && h->c[1] == h->c[3] && h->c[1] == h->c[4]) ||
-	       (is_three_of_a_kind(h) && count_jokers(*h)==1 && (h->consumed_jokers+=1)) || //AAAJX
-	       (is_one_pair(h) && count_jokers(*h)==2 && (h->consumed_jokers+=2)) || //AAJJX
-		   (count_jokers(*h)==3 && (h->consumed_jokers+=3)); //AJJJX
+	return ((h->c[0] == h->c[1] && h->c[2] == h->c[3] && h->c[2] == h->c[4]) || // AABBB
+	       (h->c[0] == h->c[1] && h->c[0] == h->c[2] && h->c[3] == h->c[4])); // AAABB
 }
 
 bool is_full_house(Hand* h){
+	return is_full_house_raw(h) || 
+		(is_two_pair_raw(h) && count_jokers(*h)==1); //AAJBB
+}
+
+
+bool is_three_of_a_kind_raw(Hand* h){
 	qsort(h->c, HAND_SIZE, sizeof(h->c[0]), &card_compare);
 
-	return (h->c[0] == h->c[1] && h->c[2] == h->c[3] && h->c[2] == h->c[4]) || // AABBB
-	       (h->c[0] == h->c[1] && h->c[0] == h->c[2] && h->c[3] == h->c[4]) || // AAABB
-		   (is_two_pair(h) && count_jokers(*h)==1 && (h->consumed_jokers+=1)); //AAJBB
+	return ((h->c[2] == h->c[3] && h->c[2] == h->c[4]) || //ABCCC
+	       (h->c[0] == h->c[1] && h->c[0] == h->c[2]) || //AAABC
+		   (h->c[1] == h->c[2] && h->c[1] == h->c[3])); //ABBBC
 }
 
 bool is_three_of_a_kind(Hand* h){
+	return is_three_of_a_kind_raw(h) ||
+		   (is_one_pair_raw(h) && count_jokers(*h)==1) || //AAJBC
+		   (count_jokers(*h)==2); //ABCJJ
+}
+
+bool is_two_pair_raw(Hand* h){
 	qsort(h->c, HAND_SIZE, sizeof(h->c[0]), &card_compare);
 
-	return (h->c[2] == h->c[3] && h->c[2] == h->c[4]) || //ABCCC
-	       (h->c[0] == h->c[1] && h->c[0] == h->c[2]) || //AAABC
-		   (h->c[1] == h->c[2] && h->c[1] == h->c[3]) || //ABBBC
-		   (is_one_pair(h) && count_jokers(*h)==1 && (h->consumed_jokers+=1)) || //AAJBC
-		   (count_jokers(*h)==2 && (h->consumed_jokers+=2)); //ABCJJ
+	return ((h->c[0] == h->c[1] && h->c[2] == h->c[3]) || //AABBC
+	       (h->c[0] == h->c[1] && h->c[3] == h->c[4]) || //AABCC
+	       (h->c[1] == h->c[2] && h->c[3] == h->c[4]));  //ABBCC
 }
 
 bool is_two_pair(Hand* h){
+	return is_two_pair_raw(h) ||
+		   (is_one_pair_raw(h) && count_jokers(*h)==1) || //AABJC
+		   (count_jokers(*h)==2); //ABJCJ (one joker attaches to A, another to B)
+}
+
+bool is_one_pair_raw(Hand* h){
 	qsort(h->c, HAND_SIZE, sizeof(h->c[0]), &card_compare);
 
-	return (h->c[0] == h->c[1] && h->c[2] == h->c[3]) || //AABBC
-	       (h->c[0] == h->c[1] && h->c[3] == h->c[4]) || //AABCC
-	       (h->c[1] == h->c[2] && h->c[3] == h->c[4]) || //ABBCC
-		   (is_one_pair(h) && count_jokers(*h)==1 && (++h->consumed_jokers)) || //AABJC
-		   (count_jokers(*h)==2 && (h->consumed_jokers+=2)); //ABJCJ (one joker attaches to A, another to B)
+	return ((h->c[0] == h->c[1] || h->c[1] == h->c[2] ||
+		h->c[2] == h->c[3] || h->c[3] == h->c[4]));
 }
 
 bool is_one_pair(Hand* h){
-	qsort(h->c, HAND_SIZE, sizeof(h->c[0]), &card_compare);
-
-	return (h->c[0] == h->c[1] || h->c[1] == h->c[2] ||
-	        h->c[2] == h->c[3] || h->c[3] == h->c[4]) ||
-			(count_jokers(*h)==1 && (h->consumed_jokers+=1));
+	return is_one_pair_raw(h) ||
+			(count_jokers(*h)==1);
 }
 
 /*bool is_high_card(Hand h){
