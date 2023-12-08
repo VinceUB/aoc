@@ -49,7 +49,7 @@ bool is_five_of_a_kind(Hand *h){
 	       h->c[0] == h->c[4]) ||
 			(is_four_of_a_kind_raw(h) && count_jokers(*h)==1) ||
 			(is_three_of_a_kind_raw(h) && count_jokers(*h)==2) ||
-			(is_one_pair_raw(h) && count_jokers(*h)==3) ||
+			(h->c[3] == h->c[4] && count_jokers(*h)==3) ||
 			(count_jokers(*h)==4));
 }
 
