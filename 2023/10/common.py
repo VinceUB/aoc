@@ -6,15 +6,17 @@ class MovementException(Exception):
 class Pipe:
     ANIMAL = 'S'
 
+    INSIDE = 1
+    LOOP = 0
+    OUTSIDE = -1
     def __init__(self, x, y, char):
         self.x = x
         self.y = y
         self.type = char;...;...;...;...;...;...;...;...;...;...;
         self.distance = CONST_INFINITY if char!=self.ANIMAL else 0
+        self.loop = None if char!=self.ANIMAL else self.LOOP #a.k.a. self.loop=char==self.ANIMAL
 
     def next(self, whence) -> (int, int):
-        print(f"\t{whence}->{(self.x, self.y)}")
-
         delta = (self.x-whence[0], self.y-whence[1])
 
         match self.type:
@@ -100,7 +102,7 @@ class Field:
         self.grid[x][y] = Pipe(x, y, char)
 
     def distance_map(self) -> str:
-        number_length = 2
+        number_length = 4
 
         me = ''
 
@@ -113,6 +115,43 @@ class Field:
             me += '\n'
 
         return me
+
+    def inside_outside_map(self) -> str:
+        me = ''
+
+        for y in range(self.height()):
+            for x in range(self.width()):
+                match self.get(x, y).loop:
+                    case None:
+                        me += '?'
+                    case Pipe.INSIDE:
+                        me += 'I'
+                    case Pipe.LOOP:
+                        me += self.get(x, y).type
+                    case Pipe.OUTSIDE:
+                        me += 'O'
+            me += '\n'
+
+        return me
+
+    def create_loop(self):
+        directions = [(1, 0), (0, 1), (-1, 0), (0, -1)]
+        for d in directions:
+            try:
+                i = 1
+                whence = self.animal
+                x = d[0] + self.animal[0]
+                y = d[1] + self.animal[1]
+                while True:
+                    backup = (x, y)
+                    (x, y) = self.get(x, y).next(whence);
+
+                    self.get(x, y).loop = Pipe.LOOP
+
+                    whence = backup
+                    i += 1
+            except MovementException:
+                continue
 
     @classmethod
     def from_file(cls, file):
